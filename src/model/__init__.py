@@ -1,18 +1,17 @@
 from .model import *
 from .gt_model import *
-from .mf import *
 
 
 def load_model(model_name: str, *params, reduced_dim=0, reg_last=False, postprocess=False, **kwargs):
     if reduced_dim <= 0:
-        if model_name in ['gat', 'wass']:
+        if model_name in ['gat']:
             return GAT(*params)
         if model_name in reg_list:
             return GATWithLoss(*params, reg=model_name, reg_last=reg_last, **kwargs)
         else:
             raise NotImplementedError
     elif postprocess is not True:
-        if model_name in ['gat', 'wass']:
+        if model_name in ['gat']:
             return ProcessedGAT(*params, reduced_dim=reduced_dim)
         if model_name in reg_list:
             return ProcessedGATWithLoss(*params,
@@ -22,7 +21,7 @@ def load_model(model_name: str, *params, reduced_dim=0, reg_last=False, postproc
         else:
             raise NotImplementedError
     else:
-        if model_name in ['gat', 'wass']:
+        if model_name in ['gat']:
             return TwoProcessedGAT(*params, reduced_dim=reduced_dim)
         if model_name in reg_list:
             return TwoProcessedGATWithLoss(*params,

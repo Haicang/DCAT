@@ -81,10 +81,6 @@ class RGATTrainer(object):
         """Specific process for each model."""
         cg = self.data.complementary_graph
         dataset = self.args.dataset
-        if self.args.model == 'mf':
-            cg = static_mf_reg(cg, load_path='{}/{}/{}_mf_128.npy'.format(
-                DATA_PATH, dataset, dataset))
-            self.data.complementary_graph = cg
 
     def train(self):
         if self.n_splits == 1:

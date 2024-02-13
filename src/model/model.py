@@ -1,5 +1,6 @@
 """
 Residual is not implemented in current version.
+The GAT layer is adapted from the original implementation in dgl.
 """
 
 from functools import partial
