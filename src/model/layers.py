@@ -540,6 +540,23 @@ def _attn_s_smoothing_ortho(graph: dgl.DGLGraph, *args) -> torch.Tensor:
     return smooth_loss + ortho_loss * gamma
 
 
+def _attn_s_smoothing_ortho_bak(graph: dgl.DGLGraph, *args) -> torch.Tensor:
+    z: torch.Tensor = graph.ndata['ft']
+    dim = z.size(2)
+    n_nodes = z.size(0)
+    z = z.reshape(n_nodes, -1)
+    n_dim = z.size(1)
+    gamma = args[2]  # gamma / beta for the weight of ortho loss
+    smooth_loss = _attn_s_smoothing(graph, *args)
+    # mask
+    ones = [torch.ones(dim, dim, device=z.device) for _ in range(n_dim // dim)]
+    mask = torch.block_diag(*ones)
+    ortho_loss = torch.sum(
+        (torch.mm(z.T, z) * mask / n_nodes - torch.eye(n_dim, device=z.device)) ** 2)
+    # ortho_loss = torch.sum((torch.mm(z.T, z) / n_nodes - torch.eye(n_dim, device=z.device)) ** 2)
+    return smooth_loss + ortho_loss * gamma
+
+
 def _attn_smoothing_2(graph: dgl.DGLGraph, *args) -> torch.Tensor:
     compl_graph: dgl.DGLGraph = args[1]
     with compl_graph.local_scope():

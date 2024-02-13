@@ -226,7 +226,7 @@ def normalize(mx):
     -------
     out : sp.spmatrix or np.ndarray
     """
-    rowsum = np.array(mx.sum(1)).astype(np.float)
+    rowsum = np.array(mx.sum(1)).astype(np.float_)
     r_inv = np.power(rowsum, -1).flatten()
     r_inv[np.isinf(r_inv)] = 0.
     r_mat_inv = sp.diags(r_inv)
