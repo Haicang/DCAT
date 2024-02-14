@@ -25,11 +25,11 @@ from data import load_data, load_random_splits
 from data.utils import load_complement_graph
 
 
-class RGATTrainer(object):
+class DCATTrainer(object):
     """
     Examples:
         ```
-        trainer = RGATTrainer(args)
+        trainer = DCATTrainer(args)
         trainer.train()
         ...
         trainer.reset_args(args)
@@ -47,7 +47,6 @@ class RGATTrainer(object):
         self._set_args(args)
         self._set_env(args)
         self.data = load_data(args.dataset, DATA_PATH, args.complement, True, load_tmp=args.load_tmp)
-        self._process()
 
     def _set_args(self, args):
         assert args.split_type in ['fix', 'random', 'random_semi', 'stratified']
@@ -75,12 +74,6 @@ class RGATTrainer(object):
                 self.data.raw_adj, args.complement)
         self._set_args(args)
         self._set_env(args)
-        self._process()
-
-    def _process(self):
-        """Specific process for each model."""
-        cg = self.data.complementary_graph
-        dataset = self.args.dataset
 
     def train(self):
         if self.n_splits == 1:
@@ -249,13 +242,13 @@ class RGATTrainer(object):
             acc = accuracy(logits[test_mask], labels[test_mask])
             print("Test Accuracy\t{:.4f}".format(acc))
 
-            if self.args.dump_attn:
-                self.dump_attention_score(model, g, features, self.args.dump_name)
+            # if self.args.dump_attn:
+            #     self.dump_attention_score(model, g, features, self.args.dump_name)
 
-            if self.args.dump_hid_rep:
-                self.dump_hidden_representation(model, g, features, self.args.dump_name)
-                # self.dump_labels(labels, self.args.dump_name + '_labels')
-            # self.dump_loss(ols, self.args.dump_name)
+            # if self.args.dump_hid_rep:
+            #     self.dump_hidden_representation(model, g, features, self.args.dump_name)
+            #     # self.dump_labels(labels, self.args.dump_name + '_labels')
+            # # self.dump_loss(ols, self.args.dump_name)
 
         log_end()
         return (train_acc, val_acc, acc, nc_acc, nc_nmi, nc_cs)
@@ -362,10 +355,8 @@ class RGATTrainer(object):
                             help="")
         parser.add_argument('--gamma', type=float, default=1,
                             help="the weight of orthogonal loss")
-        # Note that the new gamma is different from old gamma.
         parser.add_argument('--model', type=str, default='gat',
                             help='which model to use')
-        # parser.add_argument('--cauchy-c', type=float, default=1.0)
         parser.add_argument('--complement', type=str, default=None,
                             choices=[None, 'Laplacian', 'lap-sym-norm', 'lap-rw-norm',
                                      'adjacent', 'plain-adj'])
@@ -379,8 +370,6 @@ class RGATTrainer(object):
             args = parser.parse_args()
         else:
             args = parser.parse_args(arg_list)
-        if args.model == 'mf':
-            args.complement = 'plain-adj'
 
         log_time()
         print(args)
@@ -388,8 +377,8 @@ class RGATTrainer(object):
 
 
 def main():
-    args = RGATTrainer.get_args(['--dataset', 'wiki', '--complement', 'lap-sym-norm'])
-    trainer = RGATTrainer(args)
+    args = DCATTrainer.get_args(['--dataset', 'wiki', '--complement', 'lap-sym-norm'])
+    trainer = DCATTrainer(args)
     trainer.train()
 
 

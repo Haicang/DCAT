@@ -7,7 +7,6 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import ResNet
 import dgl
 from dgl import DGLError
 from dgl.ops import edge_softmax
@@ -24,7 +23,7 @@ __all__ = [
 ]
 
 
-reg_list = ['attn_smooth', 'attn_s_smooth', 'attn_s_smooth_2', 'attn_smooth_2', 'attn_s_smooth_ortho', 'attn_s_smooth_bn_ortho']
+reg_list = ['attn_s_smooth_ortho', 'attn_s_smooth_bn_ortho']
 
 
 class GATConv(nn.Module):
@@ -269,6 +268,7 @@ class GATConv(nn.Module):
 
 
 class GraphAttnLayer(GATConv):
+    """Vanilla GAT Layer"""
     def forward(self, graph, feat, output_attn=False):
         """Need to output the attn score"""
         with graph.local_scope():
@@ -337,8 +337,7 @@ class GraphAttnLayer(GATConv):
 
 
 class GraphAttnLayerWithLoss(GATConv):
-    """GAT with quadatic loss"""
-
+    """DCAT Layer"""
     def __init__(self,
                  in_feats,
                  out_feats,
@@ -359,43 +358,10 @@ class GraphAttnLayerWithLoss(GATConv):
         self.bn = None
         self.beta = kwargs['beta']
         self.gamma = kwargs['gamma']
-        if reg == 'quad':
-            self.loss_fn = _quad
-        elif reg == 'l1':
-            self.loss_fn = _l1_loss
-        elif reg in ['l2', 'mf']:
-            self.loss_fn = _l2_loss
-        elif reg == 'attn_smooth':
-            self.loss_fn = _attn_smoothing
-        elif reg == 'attn_s_smooth':
-            self.loss_fn = _attn_s_smoothing
-        elif reg == 'attn_s_smooth_2':
-            self.loss_fn = _attn_s_smoothing
-            self.bn = nn.BatchNorm1d(num_heads, momentum=False,
-                                     affine=False, track_running_stats=False)
-        elif reg == 'attn_s_smooth_3':
-            self.loss_fn = _attn_s_smoothing
-            self.bn = nn.BatchNorm1d(num_heads, momentum=False,
-                                     affine=False, track_running_stats=False)
-        elif reg == 'attn_s_smooth_ortho':
-            self.loss_fn = _attn_s_smoothing_ortho
-            self.bn = nn.BatchNorm1d(num_heads, momentum=False,
-                                     affine=False, track_running_stats=False)
-        elif reg == 'attn_s_smooth_bn_ortho':
-            self.loss_fn = _attn_s_smoothing_ortho
-            self.bn = nn.BatchNorm1d(num_heads, momentum=False,
-                                     affine=False, track_running_stats=False)
-        elif reg == 'attn_smooth_2':
-            self.loss_fn = _attn_smoothing_2
-        elif reg == 'lap_and_l2':
-            def _loss_fn(*args):
-                return _l2_loss(*args) + _attn_s_smoothing(*args)
-            self.loss_fn = _loss_fn
-        elif reg == 'ged_cauchy':
-            self.loss_fn = partial(_ged_cauchy_loss, c=kwargs['cauchy_c'])
-        else:
-            raise NotImplementedError
-        self.norm_model = ['attn_s_smooth_2', 'attn_s_smooth_bn_ortho']
+        assert reg in ['attn_s_smooth_bn_ortho']
+        self.loss_fn = _attn_s_smoothing_ortho
+        self.bn = nn.BatchNorm1d(num_heads, momentum=False,
+                                    affine=False, track_running_stats=False)
 
     def forward(self, graph, feat, *args, output_attn=False, out_rep=False):
         """Need to output the attn score"""
@@ -455,11 +421,8 @@ class GraphAttnLayerWithLoss(GATConv):
                 resval = self.res_fc(h_dst).view(h_dst.shape[0], -1, self._out_feats)
                 rst = rst + resval
 
-            # TODO: try to move the reg after bn and before activation.
-
             # batchnorm
-            if self.reg in self.norm_model:
-                rst = self.bn(rst)
+            rst = self.bn(rst)
 
             # activation
             if self.activation:
@@ -503,11 +466,6 @@ def _attn_smoothing(graph: dgl.DGLGraph, *args) -> torch.Tensor:
         graph.update_all(fn.copy_e('a', 'm'),
                          fn.sum('m', 'd'))
         tmp2 = graph.ndata['d'] * feat
-    # loss = 0
-    # # using loop
-    # for i in range(num_heads):
-    #     loss += torch.trace(feat[:, i, :].T @ (tmp[:, i, :] - tmp2[:, i, :]))
-    # return loss / graph.num_nodes()
     tr = torch.einsum('ibj,ibj->b', feat, tmp2 - tmp)
     loss = tr.mean() / graph.num_nodes()
     return loss
@@ -555,13 +513,3 @@ def _attn_s_smoothing_ortho_bak(graph: dgl.DGLGraph, *args) -> torch.Tensor:
         (torch.mm(z.T, z) * mask / n_nodes - torch.eye(n_dim, device=z.device)) ** 2)
     # ortho_loss = torch.sum((torch.mm(z.T, z) / n_nodes - torch.eye(n_dim, device=z.device)) ** 2)
     return smooth_loss + ortho_loss * gamma
-
-
-def _attn_smoothing_2(graph: dgl.DGLGraph, *args) -> torch.Tensor:
-    compl_graph: dgl.DGLGraph = args[1]
-    with compl_graph.local_scope():
-        compl_graph.update_all(fn.u_mul_e('ft', 'w', 'm'),
-                               fn.sum('m', 'tmp'))
-        tmp = compl_graph.ndata['tmp']
-        trace = torch.einsum('ibj,ibj->b', tmp, compl_graph.ndata['ft'])
-        return trace.sum() / graph.num_nodes()
