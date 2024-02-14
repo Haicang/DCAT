@@ -1,0 +1,21 @@
+name: graph
+channels:
+  - pytorch
+  - plotly
+  - dglteam/label/cu121
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - dgl=2.0.0.cu121=py311_0
+  - networkx=3.2.1=pyhd8ed1ab_0
+  - numpy=1.26.4=py311h64a7726_0
+  - ogb=1.3.6=pyhd8ed1ab_0  
+  - pandas=2.2.0=py311h320fe9a_0
+  - python=3.11.7=hab00c5b_1_cpython
+  - pytorch=2.1.2=cuda120_py311h9588a60_300
+  - pytorch-cuda=12.1=ha16c6d3_5
+  - pytorch-mutex=1.0=cuda
+  - scikit-learn=1.4.0=py311hc009520_0
+  - scipy=1.12.0=py311h64a7726_2
+  - torchvision=0.16.2=py311_cu121
