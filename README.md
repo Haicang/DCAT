@@ -8,4 +8,15 @@ You can unzip the dataset in `data` directory. And run the code with the followi
 ```
 python tune/wiki.py
 ```
-under the `src` directory.
+under the `src` directory. We find `CUDA=11.2`, `pytorch=2.1.2` and `dgl=2.0.0.cu121` can reproduce the results in the paper.
+
+You can cite the paper as:
+```
+@article{zhou2024differentiable,
+  title={Differentiable Clustering for Graph Attention},
+  author={Zhou, Haicang and He, Tiantian and Ong, Yew-Soon and Cong, Gao and Chen, Quan},
+  journal={IEEE Transactions on Knowledge and Data Engineering},
+  year={2024},
+  publisher={IEEE}
+}
+```
